@@ -1,0 +1,27 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_ACCOUNT_ID: 0987654321
+
+phases:
+  pre_build:
+    commands:
+      - echo Building $IMAGE_NAME with tag $COMMIT
+      - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+  
+  build:
+    commands:
+      - DOCKERFILE_PATH=Images/$IMAGE_NAME/
+      - cd ${DOCKERFILE_PATH}
+      - docker build -t $IMAGE_NAME .
+      - docker tag $IMAGE_NAME $AWS_ACCOUNT_ID.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$IMAGE_NAME:$COMMIT
+      - docker tag $IMAGE_NAME $AWS_ACCOUNT_ID.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$IMAGE_NAME:latest
+      - echo Image build completed on `date`
+
+  post_build:
+    commands:
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$IMAGE_NAME:$COMMIT
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$IMAGE_NAME:latest
+      - echo Image push completed on `date`
